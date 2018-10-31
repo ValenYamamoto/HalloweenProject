@@ -1,47 +1,91 @@
-#include <ArduinoJson.h>
-#include <SoftwareSerial.h>
+#include <Wire.h>
 
-SoftwareSerial Genotronex(0, 1); // RX, TX
-String inputString = "";
-float x = 0;
-float y = 0;
-String test = "{\"X\":0.123,\"Y\":-0.222 n}";
+float x;
+float y;
+String xVal = "";
+String yVal = "";
+String bVal = "";
+bool getX = false;
+bool getY = false;
+bool getButton = false;
+bool buttonVal = false;
 
 void setup() {
   // put your setup code here, to run once:
-  inputString.reserve(200);
+  yVal.reserve(10);
+  xVal.reserve(10);
   Serial.begin(9600);
-  
+
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  getParams();
+  parse();
 }
 
-void parseCommand() {
-  // **************************************** Reading strings from Serial Comms
-  StaticJsonBuffer<100> commandBuffer;
-  JsonObject& command = commandBuffer.parseObject(inputString);
-  x = command["X"];
-  y = command["Y"];
-  Serial.print(x);
-  Serial.print("  ");
-  Serial.println(y);
-}
-
-void getParams() {
-  // **************************************** calls parseCommand when all chars are in
-   if (Serial.available()>0) {
+void parse() {
+  if (Serial.available() > 0) {
     char inChar = (char)Serial.read();
 
-    if (inChar == 'n') {
-      parseCommand();
-      inputString = "";
-    } else {
-      inputString += inChar;
-
+    switch (inChar) {
+      case '<':
+        getX = true;
+        break;
+      case '>':
+        getX = false;
+        x = xVal.toInt();
+        xVal = "";
+        break;
+      case '{':
+        getY = true;
+        y = yVal.toInt();
+        yVal = "";
+        break;
+      case '}':
+        getY = false;
+        break;
+      case '[':
+        getButton = true;
+        break;
+      case ']':
+        getButton = false;
+        if(bVal.toInt() == 1) {
+          buttonVal = true;
+        } else {
+          buttonVal = false;
+        }
+        bVal = "";
+        break;
+      case '1': 
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+      case '0':
+      case '-':
+        if (getX) {
+          xVal += inChar;
+        } else if (getY) {
+          yVal += inChar;
+        } else if(getButton) {
+          bVal += inChar;
+        }
+        break;
     }
-    Serial.println(inputString);
+    
+//    Serial.print("Xval: ");
+//    Serial.print(xVal);
+//    Serial.print("  Yval: ");
+//    Serial.print(yVal);
+    Serial.print("  X: ");
+    Serial.print(x);
+    Serial.print("  Y: ");
+    Serial.print(y);
+     Serial.print("  B: ");
+    Serial.println(buttonVal);
   }
 }
